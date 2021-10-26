@@ -112,7 +112,7 @@ public class ChatServer {
 
     private void sendMessage(String message, ClientDispatcher client) {
         try {
-            PrintWriter out = new PrintWriter(client.getClientSocket().getOutputStream(),true);
+            PrintWriter out = new PrintWriter(client.getClientSocket().getOutputStream(), true);
             out.println(message);
         } catch (IOException e) {
             e.printStackTrace();
@@ -122,44 +122,12 @@ public class ChatServer {
     private boolean isCommand(String message, ClientDispatcher client) {
 
         if (message.startsWith("/name")) {
-
-            //Create the message
-            String messageName = Thread.currentThread().getName() + " changed his name.";
-
-            //Log the message
-            System.err.println(messageName);
-
-            //Send the message to every client
-            messageAll(messageName);
-
-            //Change the Client name
-            String newName = message.substring(6);
-            client.setName(newName);
-
+            executeNameCommand(message, client);
             return true;
 
         } else if (message.startsWith("/quit")) {
-
-            try {
-                //Create the message
-                String messageName = Thread.currentThread().getName() + " Disconnected.";
-
-                //Log the message
-                System.err.println(messageName);
-
-                //Send the message to every client
-                messageAll(messageName);
-
-                //Remove the socket from the list
-                this.clients.remove(client);
-
-                //Close the connection
-                client.getClientSocket().close();
-                return true;
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            executeQuitCommand(client);
+            return true;
 
         } else if (message.startsWith("/list")) {
             for (ClientDispatcher clientDispatcher : clients) {
@@ -169,6 +137,43 @@ public class ChatServer {
         }
 
         return false;
+    }
+
+    private void executeQuitCommand(ClientDispatcher client) {
+        try {
+            //Create the message
+            String messageName = Thread.currentThread().getName() + " Disconnected.";
+
+            //Log the message
+            System.err.println(messageName);
+
+            //Send the message to every client
+            messageAll(messageName);
+
+            //Remove the socket from the list
+            this.clients.remove(client);
+
+            //Close the connection
+            client.getClientSocket().close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void executeNameCommand(String message, ClientDispatcher client) {
+        //Create the message
+        String messageName = Thread.currentThread().getName() + " changed his name.";
+
+        //Log the message
+        System.err.println(messageName);
+
+        //Send the message to every client
+        messageAll(messageName);
+
+        //Change the Client name
+        String newName = message.substring(6);
+        client.setName(newName);
     }
 
     private class ClientDispatcher implements Runnable {
