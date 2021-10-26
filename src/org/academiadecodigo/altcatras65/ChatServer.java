@@ -6,18 +6,19 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.LinkedList;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ChatServer {
     private final int PORT_NUMBER;
     private ServerSocket serverSocket;
-    private LinkedList<ClientDispatcher> clients;
+    private Map<ClientDispatcher, String> clients;
 
     public ChatServer(int PORT_NUMBER) {
         this.PORT_NUMBER = PORT_NUMBER;
-        this.clients = new LinkedList<>();
+        this.clients = new ConcurrentHashMap<>();
     }
 
     public void listen() {
@@ -34,7 +35,6 @@ public class ChatServer {
                 Socket socket = this.serverSocket.accept();
                 ClientDispatcher clientDispatcher = new ClientDispatcher(socket);
                 executorService.submit(clientDispatcher);
-                clients.add(clientDispatcher);
             }
 
         } catch (IOException e) {
@@ -96,7 +96,7 @@ public class ChatServer {
     }
 
     private void messageAll(String message) {
-        for (ClientDispatcher client : this.clients) {
+        for (ClientDispatcher client : this.clients.keySet()) {
             try {
                 //To write a new message to the clientSocket
                 PrintWriter outClient = new PrintWriter(client.getClientSocket().getOutputStream(), true);
@@ -122,20 +122,28 @@ public class ChatServer {
     private boolean isCommand(String message, ClientDispatcher client) {
 
         if (message.startsWith("/name")) {
-            executeNameCommand(message, client);
+            System.err.println(client.getName() + ": Executing the command /quit");
+            executeChangeNameCommand(message, client);
             return true;
 
         } else if (message.startsWith("/quit")) {
+            System.err.println(client.getName() + ": Executing the command /quit");
+
             executeQuitCommand(client);
             return true;
 
         } else if (message.startsWith("/list")) {
-            for (ClientDispatcher clientDispatcher : clients) {
+            System.err.println(client.getName() + ": Executing the command /list");
+            for (ClientDispatcher clientDispatcher : this.clients.keySet()) {
                 sendMessage(clientDispatcher.getName(), client);
-                return true;
             }
-        }
+            return true;
+        } else if (message.startsWith("/whisper")) {
+            System.err.println(client.getName() + ": Executing the command /whisper");
+            executeCommandWhisper(message);
+            return true;
 
+        }
         return false;
     }
 
@@ -161,7 +169,7 @@ public class ChatServer {
         }
     }
 
-    private void executeNameCommand(String message, ClientDispatcher client) {
+    private void executeChangeNameCommand(String message, ClientDispatcher client) {
         //Create the message
         String messageName = Thread.currentThread().getName() + " changed his name.";
 
@@ -174,6 +182,22 @@ public class ChatServer {
         //Change the Client name
         String newName = message.substring(6);
         client.setName(newName);
+    }
+
+    private void executeCommandWhisper(String message) {
+        String[] commands = message.split("/");
+        String sender = commands[1].substring(7).trim();
+        String msg = commands[2].substring(4);
+        sendMessage(msg, getClientByName(sender));
+    }
+
+    private ClientDispatcher getClientByName(String name) {
+        for (ClientDispatcher clientDispatcher : clients.keySet()) {
+            if (clientDispatcher.getName().equals(name)) {
+                return clientDispatcher;
+            }
+        }
+        return null;
     }
 
     private class ClientDispatcher implements Runnable {
@@ -195,6 +219,7 @@ public class ChatServer {
             //Set the new name
             setName("Client " + clientNumber);
 
+            clients.put(this, this.name);
             dispatch(this);
         }
 
@@ -209,6 +234,7 @@ public class ChatServer {
         public void setName(String name) {
             this.name = name;
             Thread.currentThread().setName(this.name);
+            clients.replace(this, name);
         }
     }
 
