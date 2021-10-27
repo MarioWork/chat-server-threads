@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 public class ChatServer {
     private final int PORT_NUMBER;
     private ServerSocket serverSocket;
+    private final String DEFAULT_NAME = "Client ";
     private Map<ClientDispatcher, String> clients;
 
     public ChatServer(int PORT_NUMBER) {
@@ -24,6 +25,7 @@ public class ChatServer {
     public void listen() {
 
         try {
+            long connections = 0;
 
             //Create server socket
             this.serverSocket = new ServerSocket(this.PORT_NUMBER);
@@ -33,7 +35,21 @@ public class ChatServer {
             while (true) {
                 //Create a client socket by accepting new connection
                 Socket socket = this.serverSocket.accept();
+
+
                 ClientDispatcher clientDispatcher = new ClientDispatcher(socket);
+
+                //Set default name of the client
+                clientDispatcher.setName(DEFAULT_NAME+connections);
+
+                //Send to everyone that there is a new client connected
+                String messageConnection = clientDispatcher.getName() + " has connected.";
+                System.err.println(messageConnection);
+                broadCast(messageConnection);
+
+                connections++;
+
+                //create a thread
                 executorService.submit(clientDispatcher);
             }
 
@@ -50,11 +66,6 @@ public class ChatServer {
             BufferedReader in = new BufferedReader(new InputStreamReader(client.getClientSocket().getInputStream()));
 
 
-            //Send to everyone that there is a new client
-            String messageConnection = Thread.currentThread().getName() + " has connected.";
-            System.err.println(messageConnection);
-            messageAll(messageConnection);
-
             while (client.getClientSocket().isBound()) {
                 // Save the incoming message
                 String message = in.readLine();
@@ -63,13 +74,13 @@ public class ChatServer {
                 if (!isCommand(message, client)) {
 
                     //Save the message with the client name
-                    message = Thread.currentThread().getName() + ": " + message;
+                    message = client.getName() + ": " + message;
 
                     //Log the message
                     System.out.println(message);
 
                     //send the Message to every client
-                    messageAll(message);
+                    broadCast(message);
                 }
             }
 
@@ -80,7 +91,7 @@ public class ChatServer {
             System.err.println(messageDisconnect);
 
             //Send the message to every client
-            messageAll(messageDisconnect);
+            broadCast(messageDisconnect);
 
             //Remove the socket from the list
             this.clients.remove(client);
@@ -95,7 +106,7 @@ public class ChatServer {
 
     }
 
-    private void messageAll(String message) {
+    private void broadCast(String message) {
         for (ClientDispatcher client : this.clients.keySet()) {
             try {
                 //To write a new message to the clientSocket
@@ -150,13 +161,13 @@ public class ChatServer {
     private void executeQuitCommand(ClientDispatcher client) {
         try {
             //Create the message
-            String messageName = Thread.currentThread().getName() + " Disconnected.";
+            String messageName = client.getName() + " Disconnected.";
 
             //Log the message
             System.err.println(messageName);
 
             //Send the message to every client
-            messageAll(messageName);
+            broadCast(messageName);
 
             //Remove the socket from the list
             this.clients.remove(client);
@@ -171,13 +182,13 @@ public class ChatServer {
 
     private void executeChangeNameCommand(String message, ClientDispatcher client) {
         //Create the message
-        String messageName = Thread.currentThread().getName() + " changed his name.";
+        String messageName = client.getName() + " changed his name.";
 
         //Log the message
         System.err.println(messageName);
 
         //Send the message to every client
-        messageAll(messageName);
+        broadCast(messageName);
 
         //Change the Client name
         String newName = message.substring(6);
@@ -210,15 +221,6 @@ public class ChatServer {
 
         @Override
         public void run() {
-            //Get the index of the thread number
-            int clientNumberIndex = Thread.currentThread().getName().lastIndexOf("-") + 1;
-
-            //Get the thread number
-            String clientNumber = Thread.currentThread().getName().substring(clientNumberIndex);
-
-            //Set the new name
-            setName("Client " + clientNumber);
-
             clients.put(this, this.name);
             dispatch(this);
         }
