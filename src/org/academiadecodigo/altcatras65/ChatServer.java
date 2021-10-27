@@ -106,7 +106,7 @@ public class ChatServer {
 
     }
 
-    private void broadCast(String message) {
+    private synchronized void broadCast(String message) {
         for (ClientDispatcher client : this.clients.keySet()) {
             try {
                 //To write a new message to the clientSocket
@@ -139,15 +139,12 @@ public class ChatServer {
 
         } else if (message.startsWith("/quit")) {
             System.err.println(client.getName() + ": Executing the command /quit");
-
             executeQuitCommand(client);
             return true;
 
         } else if (message.startsWith("/list")) {
             System.err.println(client.getName() + ": Executing the command /list");
-            for (ClientDispatcher clientDispatcher : this.clients.keySet()) {
-                sendMessage(clientDispatcher.getName(), client);
-            }
+            executeCommandList(client);
             return true;
         } else if (message.startsWith("/whisper")) {
             System.err.println(client.getName() + ": Executing the command /whisper");
@@ -156,6 +153,12 @@ public class ChatServer {
 
         }
         return false;
+    }
+
+    private synchronized void executeCommandList(ClientDispatcher client) {
+        for (ClientDispatcher clientDispatcher : this.clients.keySet()) {
+            sendMessage(clientDispatcher.getName(), client);
+        }
     }
 
     private void executeQuitCommand(ClientDispatcher client) {
@@ -202,7 +205,7 @@ public class ChatServer {
         sendMessage(msg, getClientByName(sender));
     }
 
-    private ClientDispatcher getClientByName(String name) {
+    private synchronized ClientDispatcher getClientByName(String name) {
         for (ClientDispatcher clientDispatcher : clients.keySet()) {
             if (clientDispatcher.getName().equals(name)) {
                 return clientDispatcher;
