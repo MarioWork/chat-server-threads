@@ -40,7 +40,7 @@ public class ChatServer {
                 ClientDispatcher clientDispatcher = new ClientDispatcher(socket);
 
                 //Set default name of the client
-                clientDispatcher.setName(DEFAULT_NAME+connections);
+                clientDispatcher.setName(DEFAULT_NAME + connections);
 
                 //Send to everyone that there is a new client connected
                 String messageConnection = clientDispatcher.getName() + " has connected.";
@@ -72,7 +72,7 @@ public class ChatServer {
 
                 //Change the name of the thread if receives a message with /name command
                 if (!isCommand(message, client)) {
-
+                    //TODO
                     //Save the message with the client name
                     message = client.getName() + ": " + message;
 
@@ -153,6 +153,10 @@ public class ChatServer {
 
         }
         return false;
+    }
+
+    private boolean isMessageValid(String message) {
+        return message.isEmpty();
     }
 
     private synchronized void executeCommandList(ClientDispatcher client) {
