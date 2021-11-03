@@ -59,6 +59,8 @@ public class ChatServer {
 
     }
 
+
+
     public void dispatch(ClientDispatcher client) {
 
         try {
