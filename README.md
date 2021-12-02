@@ -1,5 +1,5 @@
 # Chat Server
-This application consists of a chat server that allows users to communicate between eachother.
+This application consists of a chat server that allows users to communicate between each other.
 
 ## Setup
 To build this project using ANT go to the project folder and use the command ant
